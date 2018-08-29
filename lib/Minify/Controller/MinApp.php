@@ -88,9 +88,15 @@ class Minify_Controller_MinApp extends Minify_Controller_Base
                             continue;
                         } else {
                             $secondMissing = basename($file);
-                            $this->logger->info("More than one file was missing: '$firstMissing', '$secondMissing'");
-
-                            return new Minify_ServeConfiguration($options);
+                            $this->logger->info("More than one file was missing: '$firstMissing', '$secondMissing', url: {$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}");
+                            if ($_ENV['serwer'] === 'wicher')
+                            {
+                                return new Minify_ServeConfiguration($options);
+                            }
+                            else
+                            {
+                                $this->logBadEvent("More than one file was missing: '$firstMissing', '$secondMissing', url: {$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}");
+                            }
                         }
                     }
                 }
@@ -107,17 +113,32 @@ class Minify_Controller_MinApp extends Minify_Controller_Base
             $hasEscape = strpos($get['f'], '\\') !== false;
 
             if (!$validPattern || $hasComment || $hasEscape) {
-                $this->logger->info("GET param 'f' was invalid");
+                $this->logger->info("GET param 'f' was invalid, url: {$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}");
 
-                return new Minify_ServeConfiguration($options);
+                if ($_ENV['serwer'] === 'wicher')
+                {
+                    return new Minify_ServeConfiguration($options);
+                }
+                else
+                {
+                    $this->logBadEvent("GET param 'f' was invalid, url: {$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}");
+                }
             }
 
             $ext = ".{$m[1]}";
             $files = explode(',', $get['f']);
             if ($files != array_unique($files)) {
-                $this->logger->info("Duplicate files were specified");
+                $this->logger->info("Duplicate files were specified, url: {$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}");
+                $files = array_unique($files);
 
-                return new Minify_ServeConfiguration($options);
+                if ($_ENV['serwer'] === 'wicher')
+                {
+                    return new Minify_ServeConfiguration($options);
+                }
+                else
+                {
+                    $this->logBadEvent("Duplicate files were specified, url: {$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}");
+                }
             }
 
             if (isset($get['b'])) {
@@ -130,7 +151,7 @@ class Minify_Controller_MinApp extends Minify_Controller_Base
                     // valid base
                     $base = "/{$get['b']}/";
                 } else {
-                    $this->logger->info("GET param 'b' was invalid");
+                    $this->logger->info("GET param 'b' was invalid, url: {$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}");
 
                     return new Minify_ServeConfiguration($options);
                 }
@@ -162,9 +183,15 @@ class Minify_Controller_MinApp extends Minify_Controller_Base
                         continue;
                     } else {
                         $secondMissing = $uri;
-                        $this->logger->info("More than one file was missing: '$firstMissing', '$secondMissing`'");
-
-                        return new Minify_ServeConfiguration($options);
+                        $this->logger->info("More than one file was missing: '$firstMissing', '$secondMissing`', url: {$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}");
+                        if ($_ENV['serwer'] === 'wicher')
+                        {
+                            return new Minify_ServeConfiguration($options);
+                        }
+                        else
+                        {
+                            $this->logBadEvent("More than one file was missing: '$firstMissing', '$secondMissing`', url: {$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}");
+                        }
                     }
                 }
             }
@@ -192,5 +219,12 @@ class Minify_Controller_MinApp extends Minify_Controller_Base
         }
 
         return new Minify_ServeConfiguration($options, $sources, $selectionId);
+    }
+
+    private function logBadEvent($text)
+    {
+        $data_path = substr(__DIR__,0,-42) . '/data';
+        $msg = sprintf("%s\t %s [referer: %s]\n", date('Y-m-d H:i:s'), $text, $_SERVER['HTTP_REFERER']);
+        file_put_contents ($data_path . '/debug/minify.log', $msg, FILE_APPEND);
     }
 }
